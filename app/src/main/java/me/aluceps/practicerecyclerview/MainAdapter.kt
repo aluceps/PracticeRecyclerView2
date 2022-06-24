@@ -1,5 +1,6 @@
 package me.aluceps.practicerecyclerview
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,6 +37,22 @@ class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
         }
     }
 
+    override fun onViewAttachedToWindow(holder: ListItem) {
+        super.onViewAttachedToWindow(holder)
+        when (holder) {
+            is ListItem.AdViewHolder -> Log.d("###", "onViewAttachedToWindow: index=${holder.index}")
+            else -> Unit
+        }
+    }
+
+    override fun onViewDetachedFromWindow(holder: ListItem) {
+        super.onViewDetachedFromWindow(holder)
+        when (holder) {
+            is ListItem.AdViewHolder -> Log.d("###", "onViewDetachedFromWindow: index=${holder.index}")
+            else -> Unit
+        }
+    }
+
     override fun getItemCount(): Int =
         items.size
 
@@ -46,9 +63,10 @@ class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
         this.items.apply {
             add(Payload.Title("title"))
             addAll(mutableListOf<Payload>().apply {
+                var index = 0
                 items.forEachIndexed { i, s ->
-                    if (isNotEmpty() && i % 10 == 0) {
-                        add(Payload.Ad("Ad Test"))
+                    if (isNotEmpty() && i % AD_INTERVAL == 0) {
+                        add(Payload.Ad("Ad Test", index++))
                     }
                     add(Payload.Item(s))
                 }
@@ -75,8 +93,10 @@ class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
 
         class AdViewHolder(itemView: View) : ListItem(itemView) {
             override val binding = LayoutAdBinding.bind(itemView)
+            var index = 0
             fun bind(data: Payload.Ad) {
-                binding.data.text = data.value
+                index = data.index
+                binding.data.text = "%s %d".format(data.value, data.index)
             }
         }
     }
@@ -92,7 +112,7 @@ class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
             override fun getViewType(): Int = VIEW_TYPE_TITLE
         }
 
-        data class Ad(val value: String) : Payload() {
+        data class Ad(val value: String, val index: Int) : Payload() {
             override fun getViewType(): Int = VIEW_TYPE_AD
         }
     }
@@ -101,5 +121,6 @@ class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
         const val VIEW_TYPE_ITEM = 100
         const val VIEW_TYPE_TITLE = 200
         const val VIEW_TYPE_AD = 300
+        const val AD_INTERVAL = 5
     }
 }
