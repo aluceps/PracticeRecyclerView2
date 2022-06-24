@@ -1,9 +1,12 @@
 package me.aluceps.practicerecyclerview
 
+import android.content.res.Resources
+import android.graphics.Rect
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import me.aluceps.practicerecyclerview.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -26,6 +29,24 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.apply {
             adapter = MainAdapter()
             layoutManager = LinearLayoutManager(context)
+            if (itemDecorationCount == 0) {
+                addItemDecoration(object : RecyclerView.ItemDecoration() {
+                    override fun getItemOffsets(
+                        outRect: Rect,
+                        itemPosition: Int,
+                        parent: RecyclerView
+                    ) {
+                        outRect.left = 16.toDp(resources)
+                        outRect.right = 16.toDp(resources)
+                        if (itemPosition > 0) {
+                            outRect.top = 12.toDp(resources)
+                        }
+                    }
+
+                    private fun Int.toDp(resources: Resources) =
+                        (this * resources.displayMetrics.density).toInt()
+                })
+            }
         }
     }
 

@@ -4,34 +4,76 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewbinding.ViewBinding
 import me.aluceps.practicerecyclerview.databinding.LayoutItemBinding
+import me.aluceps.practicerecyclerview.databinding.LayoutTitleBinding
 
 class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
 
-    private val items = mutableListOf<String>()
+    private val items = mutableListOf<Payload>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListItem =
-        LayoutInflater.from(parent.context).inflate(R.layout.layout_item, parent, false)
-            .let {
-                ListItem.ItemViewHolder(it)
+        LayoutInflater.from(parent.context).let {
+            return@let when (viewType) {
+                VIEW_TYPE_TITLE -> it.inflate(R.layout.layout_title, parent, false).let {
+                    ListItem.TitleViewHolder(it)
+                }
+                else -> it.inflate(R.layout.layout_item, parent, false).let {
+                    ListItem.ItemViewHolder(it)
+                }
             }
+        }
 
     override fun onBindViewHolder(holder: ListItem, position: Int) {
-        (holder as ListItem.ItemViewHolder).let {
-            it.binding.data.text = items[position]
+        when (val item = items[position]) {
+            is Payload.Item -> (holder as ListItem.ItemViewHolder).bind(item)
+            is Payload.Title -> (holder as ListItem.TitleViewHolder).bind(item)
         }
     }
 
     override fun getItemCount(): Int =
         items.size
 
+    override fun getItemViewType(position: Int): Int =
+        items[position].getViewType()
+
     fun addAll(items: List<String>) {
-        this.items.addAll(items)
+        this.items.add(Payload.Title("title"))
+        this.items.addAll(items.map { Payload.Item(it) })
     }
 
     sealed class ListItem(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        abstract val binding: ViewBinding
+
         class ItemViewHolder(itemView: View) : ListItem(itemView) {
-            val binding = LayoutItemBinding.bind(itemView)
+            override val binding = LayoutItemBinding.bind(itemView)
+            fun bind(data: Payload.Item) {
+                binding.data.text = data.value
+            }
         }
+
+        class TitleViewHolder(itemView: View) : ListItem(itemView) {
+            override val binding = LayoutTitleBinding.bind(itemView)
+            fun bind(data: Payload.Title) {
+                binding.data.text = data.value
+            }
+        }
+    }
+
+    sealed class Payload {
+        abstract fun getViewType(): Int
+
+        data class Item(val value: String) : Payload() {
+            override fun getViewType(): Int = VIEW_TYPE_ITEM
+        }
+
+        data class Title(val value: String) : Payload() {
+            override fun getViewType(): Int = VIEW_TYPE_TITLE
+        }
+    }
+
+    companion object {
+        const val VIEW_TYPE_ITEM = 100
+        const val VIEW_TYPE_TITLE = 200
     }
 }
