@@ -1,103 +1,87 @@
 package me.aluceps.practicerecyclerview
 
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import androidx.recyclerview.widget.RecyclerView
-import androidx.viewbinding.ViewBinding
+import com.xwray.groupie.GroupAdapter
+import com.xwray.groupie.GroupieViewHolder
+import com.xwray.groupie.Section
+import com.xwray.groupie.viewbinding.BindableItem
 import me.aluceps.practicerecyclerview.databinding.LayoutAdBinding
 import me.aluceps.practicerecyclerview.databinding.LayoutItemBinding
 import me.aluceps.practicerecyclerview.databinding.LayoutTitleBinding
 
-class MainAdapter : RecyclerView.Adapter<MainAdapter.ListItem>() {
+class MainAdapter : GroupAdapter<GroupieViewHolder>() {
 
-    private val items = mutableListOf<Payload>()
+    private val section = Section()
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListItem =
-        LayoutInflater.from(parent.context).let {
-            return@let when (viewType) {
-                VIEW_TYPE_TITLE -> it.inflate(R.layout.layout_title, parent, false).let {
-                    ListItem.TitleViewHolder(it)
-                }
-                VIEW_TYPE_AD -> it.inflate(R.layout.layout_ad, parent, false).let {
-                    ListItem.AdViewHolder(it)
-                }
-                else -> it.inflate(R.layout.layout_item, parent, false).let {
-                    ListItem.ItemViewHolder(it)
-                }
-            }
-        }
-
-    override fun onBindViewHolder(holder: ListItem, position: Int) {
-        when (val item = items[position]) {
-            is Payload.Item -> (holder as ListItem.ItemViewHolder).bind(item)
-            is Payload.Title -> (holder as ListItem.TitleViewHolder).bind(item)
-            is Payload.Ad -> (holder as ListItem.AdViewHolder).bind(item)
-        }
+    init {
+        add(section)
     }
-
-    override fun onViewAttachedToWindow(holder: ListItem) {
-        super.onViewAttachedToWindow(holder)
-        when (holder) {
-            is ListItem.AdViewHolder -> Log.d("###", "onViewAttachedToWindow: index=${holder.index}")
-            else -> Unit
-        }
-    }
-
-    override fun onViewDetachedFromWindow(holder: ListItem) {
-        super.onViewDetachedFromWindow(holder)
-        when (holder) {
-            is ListItem.AdViewHolder -> Log.d("###", "onViewDetachedFromWindow: index=${holder.index}")
-            else -> Unit
-        }
-    }
-
-    override fun getItemCount(): Int =
-        items.size
-
-    override fun getItemViewType(position: Int): Int =
-        items[position].getViewType()
 
     fun addAll(items: List<String>) {
-        this.items.apply {
-            add(Payload.Title("title"))
-            addAll(mutableListOf<Payload>().apply {
-                var index = 0
-                items.forEachIndexed { i, s ->
-                    if (isNotEmpty() && i % AD_INTERVAL == 0) {
-                        add(Payload.Ad("Ad Test", index++))
-                    }
-                    add(Payload.Item(s))
+        section.add(TitleViewHolder(Payload.Title("title")))
+        mutableListOf<Payload>().apply {
+            items.forEachIndexed { i, s ->
+                var adIndex = 0
+                if (isNotEmpty() && i % AD_INTERVAL == 0) {
+                    add(Payload.Ad("Ad Test", adIndex++))
                 }
-            })
+                add(Payload.Item(s))
+            }
+        }.map {
+            when (it) {
+                is Payload.Ad -> AdViewHolder(it)
+                is Payload.Item -> ItemViewHolder(it)
+                else -> return
+            }
+        }.let {
+            section.addAll(it)
         }
     }
 
-    sealed class ListItem(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        abstract val binding: ViewBinding
-
-        class ItemViewHolder(itemView: View) : ListItem(itemView) {
-            override val binding = LayoutItemBinding.bind(itemView)
-            fun bind(data: Payload.Item) {
-                binding.data.text = data.value
-            }
+    class ItemViewHolder(private val data: Payload.Item) :
+        BindableItem<LayoutItemBinding>(data.hashCode().toLong()) {
+        override fun bind(viewBinding: LayoutItemBinding, position: Int) {
+            viewBinding.data.text = data.value
         }
 
-        class TitleViewHolder(itemView: View) : ListItem(itemView) {
-            override val binding = LayoutTitleBinding.bind(itemView)
-            fun bind(data: Payload.Title) {
-                binding.data.text = data.value
-            }
+        override fun getLayout(): Int = R.layout.layout_item
+
+        override fun initializeViewBinding(view: View): LayoutItemBinding =
+            LayoutItemBinding.bind(view)
+    }
+
+    class TitleViewHolder(private val data: Payload.Title) :
+        BindableItem<LayoutTitleBinding>(data.hashCode().toLong()) {
+        override fun bind(viewBinding: LayoutTitleBinding, position: Int) {
+            viewBinding.data.text = data.value
         }
 
-        class AdViewHolder(itemView: View) : ListItem(itemView) {
-            override val binding = LayoutAdBinding.bind(itemView)
-            var index = 0
-            fun bind(data: Payload.Ad) {
-                index = data.index
-                binding.data.text = "%s %d".format(data.value, data.index)
-            }
+        override fun getLayout(): Int = R.layout.layout_title
+
+        override fun initializeViewBinding(view: View): LayoutTitleBinding =
+            LayoutTitleBinding.bind(view)
+    }
+
+    class AdViewHolder(private val data: Payload.Ad) :
+        BindableItem<LayoutAdBinding>(data.hashCode().toLong()) {
+        override fun bind(viewBinding: LayoutAdBinding, position: Int) {
+            viewBinding.data.text = data.value
+        }
+
+        override fun getLayout(): Int = R.layout.layout_ad
+
+        override fun initializeViewBinding(view: View): LayoutAdBinding =
+            LayoutAdBinding.bind(view)
+
+        override fun onViewAttachedToWindow(viewHolder: com.xwray.groupie.viewbinding.GroupieViewHolder<LayoutAdBinding>) {
+            super.onViewAttachedToWindow(viewHolder)
+            Log.d("###", "onViewAttachedToWindow")
+        }
+
+        override fun onViewDetachedFromWindow(viewHolder: com.xwray.groupie.viewbinding.GroupieViewHolder<LayoutAdBinding>) {
+            super.onViewDetachedFromWindow(viewHolder)
+            Log.d("###", "onViewDetachedFromWindow")
         }
     }
 
